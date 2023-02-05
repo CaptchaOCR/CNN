@@ -12,37 +12,12 @@ import torch
 unique_characters = ['a', 'r', 'm', 's', 'L', '1', 'I', 'z', '3', 'h', 'D', 'P', 'X', 'W', 'U', 'n', '6', 'S', 'f', '2', 'H', 't', 'E', 'j', 'u', '8', 'A', 'V', '9', 'k', 'K', 'c', 'F', 'b', 'g', 'd', 'q', 'w', 'R', 'p', 'J', 'y', 'G', 'Y', 'O', 'v', '7', '4', 'T', 'Z', 'B', 'i', 'M', '5', 'e', 'Q', 'N', 'l', 'C', 'x']
 captcha_length = 5
 
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
 
-        self.conv1 = nn.Conv2d(3, # 3 input channels
-            6, # 6 output channels
-            5, bias = False) # kernel of size 5x5
-
-        self.pool = nn.MaxPool2d(2, # kernel size of 2
-            2) # stride of 2
-
-        self.conv2 = nn.Conv2d(6, 16, 5) # 6 in / 16 out / 5x5 kernel
-
-        self.fc1 = nn.Linear(3808, # features in
-            1404) # features out
-
-        self.fc2 = nn.Linear(1404, 702)
-        self.fc3 = nn.Linear(702, 
-                            len(unique_characters) * captcha_length # 300 output nodes: 5-chars 60 nodes
-                            , bias = True)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)#nn.Softmax(self.fc3(x))
-        return x
-
-
+"""
+unique_characters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+unique_characters += [char.upper() for char in unique_characters]
+unique_characters += [i for i in range(0,10)]
+"""
 
 class Captcha_Dataset(Dataset):
     def __init__(self, data, labels):
@@ -162,3 +137,43 @@ def decode_prediction(prediction:torch.Tensor, print_comparison=False, return_ac
 
     if return_accuracy: return (pred_labels, correct, total)
     else: pred_labels
+
+
+class BasicCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(3, # 3 input channels
+            6, # 6 output channels
+            5, bias = False) # kernel of size 5x5
+
+        self.pool = nn.MaxPool2d(2, # kernel size of 2
+            2) # stride of 2
+
+        self.conv2 = nn.Conv2d(6, 16, 5) # 6 in / 16 out / 5x5 kernel
+
+        self.fc1 = nn.Linear(3808, # features in
+            1404) # features out
+
+        self.fc2 = nn.Linear(1404, 702)
+        self.fc3 = nn.Linear(702, 
+                            len(unique_characters) * captcha_length # 300 output nodes: 5-chars 60 nodes
+                            , bias = True)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)#nn.Softmax(self.fc3(x))
+        return x
+
+
+"""
+class ModularCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+"""
+        """Let's organize this one ~ like resnet -- https://arxiv.org/pdf/1512.03385v1.pdf
+        Self-connected blocks of conv -> batchnorm -> relu -> conv -> batchnorm""
