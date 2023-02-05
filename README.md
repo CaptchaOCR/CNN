@@ -1,3 +1,11 @@
-Building a CNN with OCR to recognize CaptchaV1 characters.
+An OCR CNN to recognize CaptchaV1 characters.
+Built with PyTorch.
 
-[Dataset](https://www.kaggle.com/code/tusharpatil98/ocr-model/data)
+[Main Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset)
+
+<h3>Roadmap<h3>
+Backend:
+- Build/Tune/Train NN
+- (?) Setup Captcha generation for frontend samples [PHP Captcha](https://github.com/Gregwar/Captcha)
+Frontend:
+- Upload/generate Captcha images
