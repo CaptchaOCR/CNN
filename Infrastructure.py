@@ -88,7 +88,10 @@ class Captcha_Dataset(Dataset):
 
     def encode_label(self, label:str) -> np.ndarray:
         """
+        We need to encode the 5-char label into 5, 60-node arrays.
         
+        Parameters: label (str)
+        Returns: np.ndarray of shape 5,60
         """
         label_array = []
         for char in label:
