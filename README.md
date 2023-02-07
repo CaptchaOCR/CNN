@@ -1,6 +1,6 @@
-An OCR CNN to recognize CaptchaV1 characters.
-Built with PyTorch. Uses [Captcha Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset).
 
+The backend OCR CNN to recognize CaptchaV1 characters.
+Built with PyTorch. Uses [Captcha Dataset](https://www.kaggle.com/datasets/parsasam/captcha-dataset).
 
 
 ### Roadmap
