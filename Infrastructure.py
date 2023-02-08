@@ -252,7 +252,7 @@ class ResNetWrapper(nnModuleWrapper):
     def __init__(self):
         super().__init__()
 
-        model = resnet18(pretrained=False)
+        model = resnet18(weights=None)
         model.conv1 = nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
         model.fc = nn.Linear(512, len(unique_characters) * captcha_length, bias=True)
 
