@@ -8,6 +8,9 @@ from torch.utils.data import Dataset
 import torch.nn as nn
 import torch
 
+from torch.autograd import Variable
+import logging
+
 captcha_length = 5
 unique_characters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 unique_characters += [char.upper() for char in unique_characters]
@@ -70,16 +73,10 @@ class CaptchaDataset(Dataset):
 
     def transform(self, image:np.ndarray) -> torch.Tensor:
         """Apply dataset transform."""
-        return T.ToTensor()(image) # This is a hack for now.
-        # Not sure why, but this transforming doesn't work. It's weird. Idk.
-        # I originally tried using only PIL images and then resizing from there, but it didn't work.
-        # Tried now going from PIL --> ndarray --> PIL --> Tensor; also doesn't work. 
-        # Bit lost.
-        # return  T.Compose([
-        #     T.ToPILImage(),
-        #     T.Resize([40, 150]),
-        #     T.ToTensor()
-        #     ])(image)
+        return T.Compose([
+            T.ToTensor(),
+            T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])(image)
 
     def encode_label(self, label:str) -> np.ndarray:
         """
@@ -104,38 +101,72 @@ class CaptchaDataset(Dataset):
         return len(self.X)
     
 
-def decode_prediction(prediction:torch.Tensor, print_comparison=False, return_accuracy=True, labels=None):
+
+def validate_model(model, testloader:torch.utils.data.dataloader.DataLoader):
     """
-    Helper function to decode the prediction matrix.
+    Validate the accuracy of a model from a set of validation images.
 
-    Parameters: prediction (torch.Tensor)
-    print_comparison (bool) Print each decoded / ground truth label for comparison.
-    return_accuracy (bool) Return count for number correct & total
-
-    Returns:
-    if return_accuracy == True: Tuple[prediction labels (List[str]), correct counts (int), total counts (int)]
-    else: prediction labels (List[str])
+    Parameters: model
+    testloader (torch.utils.data.dataloader.DataLoader)
     """
 
-    total=correct=0
+    # Strings counter
+    s_total = s_correct = 0
 
-    pred_labels = []
-    for i,single_pred in enumerate(prediction.reshape(prediction.shape[0], captcha_length, len(unique_characters))):
-        captcha = ''
-        for char in single_pred:
-            outchar = unique_characters[np.argmax(char.detach())]
-            captcha += outchar
-        pred_labels.append(captcha)
+    # Characters counter
+    c_total = c_correct = 0
 
-    if print_comparison: print('Predicted: %s Ground Truth: %s'%(captcha, labels[i]))
+    # Not training -- don't need to calc. gradients
+    with torch.no_grad():
+        # For each test batch
+        for (images, label_array, labels) in testloader:
 
-    if return_accuracy:
-        if captcha == labels[i]: correct+=1
-        total+=1
+            # Predict label
+            if torch.cuda.is_available(): images = Variable(images).cuda()
+            prediction = model(images)
 
-    if return_accuracy: return (pred_labels, correct, total)
-    else: pred_labels
+            # For each label in batch
+            for i,pred in enumerate(
+                prediction.reshape( prediction.shape[0], captcha_length, len(unique_characters) )
+                ):
 
+                # Retrieve correct label
+                correct_label = labels[i]
+
+                # Retrieve predicted label
+                predicted_label = decode_single_prediction(pred)
+
+                # Do the captchas match?
+                if correct_label == predicted_label: s_correct += 1
+                s_total += 1
+                
+                # Do any of the characters match (at correct pos.)?
+                for x,y in zip(correct_label, predicted_label):
+                    if x == y:
+                        c_correct += 1
+                    c_total += 1
+                
+                logging.debug('Predicted: %s Ground Truth: %s'%(predicted_label, correct_label))
+    
+    # Calculate results
+    label_accuracy = s_correct / s_total
+    char_accuracy = c_correct / c_total
+    logging.info(f'Label-level accuracy (whole captcha) : {(100 * label_accuracy):.3f}%')
+    logging.info(f'Char-level accuracy (indiv. chars)   : {(100 * char_accuracy):.3f}%')
+    return label_accuracy, char_accuracy
+
+def decode_single_prediction(label):
+    """
+    Helper function to decode a single prediction.
+
+    Parameters: label
+    Returns: predicted label
+    """
+    captcha = ''
+    for char in label:
+        outchar = unique_characters[np.argmax(char.detach())]
+        captcha += outchar
+    return captcha
 
 class BasicCNN(nn.Module):
     def __init__(self):
