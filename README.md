@@ -25,7 +25,7 @@ To install for development:
 
 3. Activate the CNN virtual environment. 
     
-    a. For POSIX (macOS and Linux):
+    a. For macOS and Linux:
 `source ./CNN/bin/activate`
 
     b. For Windows:
