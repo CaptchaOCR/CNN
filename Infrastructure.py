@@ -1,15 +1,17 @@
 from PIL import Image
 import numpy as np
 from typing import List, Tuple
+import logging
+
+import torch
 
 import torchvision.transforms as T
 from torch.utils.data import Dataset
-
 import torch.nn as nn
-import torch
-
 from torch.autograd import Variable
-import logging
+
+from torchvision.models import resnet18
+
 
 captcha_length = 5
 unique_characters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
@@ -151,7 +153,7 @@ class nnModuleWrapper(nn.Module):
 
         for epoch in range(epochs):
             
-            logging.info(f'Starting epoch {epoch}/{epochs}')
+            logging.info(f'Starting epoch {epoch + 1}/{epochs}')
  
             running_loss = 0.
             for i, (images, label_array, labels) in enumerate(trainloader):
@@ -182,7 +184,7 @@ class nnModuleWrapper(nn.Module):
                 running_loss += loss.item()
                 logging.info(f'[{epoch + 1}, {i + 1}] loss: {loss:.3e}')
                 
-            logging.info(f'Finished epoch {epoch}/{epochs} with total loss {running_loss}')
+            logging.info(f'Finished epoch {epoch + 1}/{epochs} with total loss {running_loss}')
         logging.info('Finished fitting.')
         return
 
@@ -245,7 +247,15 @@ class nnModuleWrapper(nn.Module):
         logging.info(f'Char-level accuracy (indiv. chars)   : {(100 * char_accuracy):.3f}%')
         return label_accuracy, char_accuracy
 
-        
+class ResNetWrapper(nnModuleWrapper):
+    def __init__(self):
+        super().__init__()
+
+        model = resnet18(pretrained=False)
+        model.conv1 = nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
+        model.fc = nn.Linear(512, len(unique_characters) * captcha_length, bias=True)
+
+        self.network = model
 
 class BasicCNN(nnModuleWrapper):
     def __init__(self):

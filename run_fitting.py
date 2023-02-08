@@ -10,7 +10,7 @@ NUM_WORKERS = 100
 EPOCHS = 20
 LEARNING_RATE = 1e-3
 
-SAVE_PATH = "./CNN_weights.pth"
+SAVE_PATH = "./ResNetWrapper_weights.pth"
 
 
 from glob import glob
@@ -26,7 +26,7 @@ from torch.autograd import Variable
 
 from sklearn.model_selection import train_test_split
 
-from Infrastructure import CaptchaDataset, unique_characters, captcha_length, CNN
+from Infrastructure import CaptchaDataset, unique_characters, captcha_length, ResNetWrapper#, CNN
 
 
 
@@ -51,7 +51,7 @@ logging.info(f'Loaded imageset into memory: {getsizeof(trainset)}')
 # Instantiate loader
 trainloader = DataLoader(trainset, BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-net = CNN()
+net = ResNetWrapper()#CNN()
 
 net.fit(trainloader, 
         criterion = nn.MultiLabelSoftMarginLoss(),
