@@ -248,6 +248,7 @@ class nnModuleWrapper(nn.Module):
         return label_accuracy, char_accuracy
 
 class ResNetWrapper(nnModuleWrapper):
+    # https://arxiv.org/pdf/1512.03385v1.pdf
     def __init__(self):
         super().__init__()
 
@@ -334,11 +335,3 @@ def debug_steps(input, net):
         output = step(output)
         print(step, output.shape)
     return output
-
-"""
-class ModularCNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-"""
-"""Let's organize this one ~ like resnet -- https://arxiv.org/pdf/1512.03385v1.pdf
-Self-connected blocks of conv -> batchnorm -> relu -> conv -> batchnorm """
