@@ -102,59 +102,6 @@ class CaptchaDataset(Dataset):
     
 
 
-def validate_model(model, testloader:torch.utils.data.dataloader.DataLoader):
-    """
-    Validate the accuracy of a model from a set of validation images.
-
-    Parameters: model
-    testloader (torch.utils.data.dataloader.DataLoader)
-    """
-
-    # Strings counter
-    s_total = s_correct = 0
-
-    # Characters counter
-    c_total = c_correct = 0
-
-    # Not training -- don't need to calc. gradients
-    with torch.no_grad():
-        # For each test batch
-        for (images, label_array, labels) in testloader:
-
-            # Predict label
-            if torch.cuda.is_available(): images = Variable(images).cuda()
-            prediction = model(images)
-
-            # For each label in batch
-            for i,pred in enumerate(
-                prediction.reshape( prediction.shape[0], captcha_length, len(unique_characters) )
-                ):
-
-                # Retrieve correct label
-                correct_label = labels[i]
-
-                # Retrieve predicted label
-                predicted_label = decode_single_prediction(pred)
-
-                # Do the captchas match?
-                if correct_label == predicted_label: s_correct += 1
-                s_total += 1
-                
-                # Do any of the characters match (at correct pos.)?
-                for x,y in zip(correct_label, predicted_label):
-                    if x == y:
-                        c_correct += 1
-                    c_total += 1
-                
-                logging.debug('Predicted: %s Ground Truth: %s'%(predicted_label, correct_label))
-    
-    # Calculate results
-    label_accuracy = s_correct / s_total
-    char_accuracy = c_correct / c_total
-    logging.info(f'Label-level accuracy (whole captcha) : {(100 * label_accuracy):.3f}%')
-    logging.info(f'Char-level accuracy (indiv. chars)   : {(100 * char_accuracy):.3f}%')
-    return label_accuracy, char_accuracy
-
 def decode_single_prediction(label):
     """
     Helper function to decode a single prediction.
@@ -168,7 +115,139 @@ def decode_single_prediction(label):
         captcha += outchar
     return captcha
 
-class BasicCNN(nn.Module):
+
+class nnModuleWrapper(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.network = None
+        self.CUDA = torch.cuda.is_available()
+
+    def fit(self, trainloader:torch.utils.data.dataloader.DataLoader,
+            criterion = nn.MultiLabelSoftMarginLoss(),
+            optimizer = torch.optim.Adam,
+            learning_rate:float = 1e-3,
+            epochs:int = 20
+            ) -> None:
+        """
+        Run fitting process on our from a set of training images.
+
+        Parameters:
+        trainloader (DataLoader object) Training set
+        criterion (nn Loss object) Loss criterion
+        optimizer (Optimizer function) Optimizer function
+        learning_rate (float) 
+        epochs (int)
+        """
+
+        # Check that we wrapped correctly
+        model = self.network
+        assert self.network is not None, 'self.network not defined!'
+        if self.CUDA: model.cuda()
+
+        # Instantiate optimizer
+        optimizer = optimizer(model.parameters(), lr=learning_rate)
+
+        logging.debug(f'{len(trainloader)} batches per epoch.')
+
+        for epoch in range(epochs):
+            
+            logging.info(f'Starting epoch {epoch}/{epochs}')
+ 
+            running_loss = 0.
+            for i, (images, label_array, labels) in enumerate(trainloader):
+
+                # Zero grads
+                optimizer.zero_grad()
+
+                # Send to cuda
+                if self.CUDA: images = Variable(images).cuda()
+                if self.CUDA: label_array = Variable(label_array).cuda()
+
+                # Forward iter
+                prediction = model(images)
+
+                # Calculate loss
+                loss = criterion(
+                        prediction.reshape( prediction.shape[0], captcha_length, len(unique_characters) ),
+                        label_array
+                        )
+
+                # Backpropagate
+                loss.backward()
+
+                # Step optimizer
+                optimizer.step()
+
+                # Log stats
+                running_loss += loss.item()
+                logging.info(f'[{epoch + 1}, {i + 1}] loss: {loss:.3e}')
+                
+            logging.info(f'Finished epoch {epoch}/{epochs} with total loss {running_loss}')
+        logging.info('Finished fitting.')
+        return
+
+
+    def validate(self, testloader:torch.utils.data.dataloader.DataLoader) -> Tuple[float]:
+        """
+        Validate the accuracy of our model from a set of validation images.
+
+        Parameters: model
+        testloader (DataLoader object)
+        """
+
+        # Check that we wrapped correctly
+        model = self.network
+        assert self.network is not None, 'self.network not defined!'
+
+
+        # Strings counter
+        s_total = s_correct = 0
+
+        # Characters counter
+        c_total = c_correct = 0
+
+        # Not training -- don't need to calc. gradients
+        with torch.no_grad():
+            # For each test batch
+            for (images, label_array, labels) in testloader:
+
+                # Predict label
+                if self.CUDA: images = Variable(images).cuda()
+                prediction = model(images)
+
+                # For each label in batch
+                for i,pred in enumerate(
+                    prediction.reshape( prediction.shape[0], captcha_length, len(unique_characters) )
+                    ):
+
+                    # Retrieve correct label
+                    correct_label = labels[i]
+
+                    # Retrieve predicted label
+                    predicted_label = decode_single_prediction(pred)
+
+                    # Do the captchas match?
+                    if correct_label == predicted_label: s_correct += 1
+                    s_total += 1
+                    
+                    # Do any of the characters match (at correct pos.)?
+                    for x,y in zip(correct_label, predicted_label):
+                        if x == y:
+                            c_correct += 1
+                        c_total += 1
+                    
+                    logging.debug('Predicted: %s Ground Truth: %s'%(predicted_label, correct_label))
+        
+        # Calculate results
+        label_accuracy = s_correct / s_total
+        char_accuracy = c_correct / c_total
+        logging.info(f'Label-level accuracy (whole captcha) : {(100 * label_accuracy):.3f}%')
+        logging.info(f'Char-level accuracy (indiv. chars)   : {(100 * char_accuracy):.3f}%')
+        return label_accuracy, char_accuracy
+
+        
+
+class BasicCNN(nnModuleWrapper):
     def __init__(self):
         super().__init__()
 
@@ -199,7 +278,9 @@ class BasicCNN(nn.Module):
         return x
 
 
-class CNN(nn.Module):
+
+
+class CNN(nnModuleWrapper):
     def __init__(self):
         super().__init__()
 
