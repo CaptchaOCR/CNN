@@ -6,16 +6,15 @@ import torchvision.transforms as T
 from torch.utils.data import Dataset
 
 import torch.nn as nn
-import torch.nn.functional as F
 import torch
 
 captcha_length = 5
 unique_characters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 unique_characters += [char.upper() for char in unique_characters]
-unique_characters += [i for i in range(0,10)]
+unique_characters += ['%i'%i for i in range(0,10)]
 
 
-class Captcha_Dataset(Dataset):
+class CaptchaDataset(Dataset):
     def __init__(self, data, labels):
         self.X = data
         self.y = labels
@@ -121,7 +120,7 @@ def decode_prediction(prediction:torch.Tensor, print_comparison=False, return_ac
     total=correct=0
 
     pred_labels = []
-    for i,single_pred in enumerate(prediction.reshape(prediction.shape[0], 5, 60)):
+    for i,single_pred in enumerate(prediction.reshape(prediction.shape[0], captcha_length, len(unique_characters))):
         captcha = ''
         for char in single_pred:
             outchar = unique_characters[np.argmax(char.detach())]
@@ -160,19 +159,64 @@ class BasicCNN(nn.Module):
                             , bias = True)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(nn.ReLU(self.conv1(x)))
+        x = self.pool(nn.ReLU(self.conv2(x)))
         x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = nn.ReLU(self.fc1(x))
+        x = nn.ReLU(self.fc2(x))
         x = self.fc3(x)#nn.Softmax(self.fc3(x))
         return x
 
+
+class CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.network = nn.Sequential(
+
+                nn.Conv2d(3, 32, kernel_size = 3, padding = 2, bias = False),
+                nn.ReLU(),
+
+                nn.Conv2d(32, 64, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.Conv2d(64, 64, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size = 3, stride = 2),
+
+
+                nn.Conv2d(64, 128, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.Conv2d(128, 128, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size = 3, stride = 2),
+
+                nn.Conv2d(128, 256, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.Conv2d(256, 256, kernel_size = 3, padding = 1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size = 3, stride = 2),
+
+                nn.Flatten(1),
+                nn.Linear(18_432, len(unique_characters)*captcha_length)
+                
+                )
+        
+    def forward(self, x):
+        return self.network(x)
+
+
+
+def debug_steps(input, net):
+    output = input
+    for step in net.children():
+        output = step(output)
+        print(step, output.shape)
+    return output
 
 """
 class ModularCNN(nn.Module):
     def __init__(self):
         super().__init__()
 """
-        """Let's organize this one ~ like resnet -- https://arxiv.org/pdf/1512.03385v1.pdf
-        Self-connected blocks of conv -> batchnorm -> relu -> conv -> batchnorm""
+"""Let's organize this one ~ like resnet -- https://arxiv.org/pdf/1512.03385v1.pdf
+Self-connected blocks of conv -> batchnorm -> relu -> conv -> batchnorm """
