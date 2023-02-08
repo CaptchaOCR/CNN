@@ -3,14 +3,14 @@
 
 DATA_DIR = "./Captchas"
 
-BATCH_SIZE = 64
+BATCH_SIZE = 256
 TEST_SIZE = .2
-NUM_WORKERS = 2
+NUM_WORKERS = 100
 
 EPOCHS = 20
 LEARNING_RATE = 1e-3
 
-SAVE_PATH = "./BasicCNN_weights.pth"
+SAVE_PATH = "./CNN_weights.pth"
 
 
 from glob import glob
