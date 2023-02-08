@@ -41,7 +41,7 @@ captcha_names = [file.split('/')[-1].split('.')[0] for file in file_locations]
 logging.info( f'Identified {len(file_locations)} images.' )
 
 # Split training/test data
-train_files, test_files = train_test_split(file_locations, test_size = .2)
+train_files, test_files = train_test_split(file_locations, test_size = TEST_SIZE)
 print(f'Split dataset into 80:20 train/test of sizes {len(train_files)},{len(test_files)}.')
 
 # Instantiate dataset
@@ -56,8 +56,8 @@ net = ResNetWrapper()#CNN()
 net.fit(trainloader, 
         criterion = nn.MultiLabelSoftMarginLoss(),
         optimizer = torch.optim.Adam,
-        learning_rate = 1e-3,
-        epochs = 20)
+        learning_rate = LEARNING_RATE,
+        epochs = EPOCHS)
 
 if SAVE_PATH is not None: torch.save(net.state_dict(), SAVE_PATH)
 
@@ -69,7 +69,7 @@ logging.info(f'Verifying accuracy')
 
 testloader = DataLoader(CaptchaDataset.from_dir(test_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-label_accuracy, char_accuracy = validate_model(net, testloader)
+label_accuracy, char_accuracy = net.validate(testloader)
 
 logging.info('Run_fit.py complete.')
 

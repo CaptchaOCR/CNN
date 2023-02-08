@@ -21,22 +21,30 @@ To install for development:
 `python3 --version`
 
 2. Create a python virtual environment.
-`python3 -m venv CNN`
+`python3 -m venv NNEnvironment`
 
 3. Activate the CNN virtual environment. 
     
     a. For macOS and Linux:
-`source ./CNN/bin/activate`
+`source ./NNEnvironment/bin/activate`
 
     b. For Windows:
-`.\CNN\Scripts\activate.bat`
+`.\NNEnvironment\Scripts\activate.bat`
 
-4. Install the dependencies for CNN.
+4. Install the dependencies for NNEnvironment.
 `pip install -r ./requirements.txt`
 
 
 ## Run
 Instructions to run the server will come soon.
+
+1. Run the virtual environment.
+
+    a. For macOS and Linux:
+`source ./NNEnvironment/bin/activate`
+
+    b. For Windows:
+`.\NNEnvironment\Scripts\activate.bat`
 
 ## Deploy
 Instructions for Docker deployment coming soon.
