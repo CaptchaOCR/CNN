@@ -9,15 +9,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-unique_characters = ['a', 'r', 'm', 's', 'L', '1', 'I', 'z', '3', 'h', 'D', 'P', 'X', 'W', 'U', 'n', '6', 'S', 'f', '2', 'H', 't', 'E', 'j', 'u', '8', 'A', 'V', '9', 'k', 'K', 'c', 'F', 'b', 'g', 'd', 'q', 'w', 'R', 'p', 'J', 'y', 'G', 'Y', 'O', 'v', '7', '4', 'T', 'Z', 'B', 'i', 'M', '5', 'e', 'Q', 'N', 'l', 'C', 'x']
 captcha_length = 5
-
-
-"""
 unique_characters = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 unique_characters += [char.upper() for char in unique_characters]
 unique_characters += [i for i in range(0,10)]
-"""
+
 
 class Captcha_Dataset(Dataset):
     def __init__(self, data, labels):
