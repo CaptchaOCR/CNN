@@ -13,7 +13,7 @@ LEARNING_RATE = 1e-3
 SAVE_PATH = "./ResNetWrapper_weights.pth"
 
 
-from glob import glob
+from pathlib import Path
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from sys import getsizeof
@@ -37,8 +37,9 @@ logging.warning(f'CUDA available: {torch.cuda.is_available()}')
 
 def run():
     # Locate files
-    file_locations = glob(DATA_DIR+'/*')
-    captcha_names = [file.split('/')[-1].split('.')[0] for file in file_locations]
+    path_iter = Path(DATA_DIR).glob('*')
+    file_locations = [str(path) for path in path_iter]
+    captcha_names = [file.stem for file in path_iter]
     logging.info( f'Identified {len(file_locations)} images.' )
 
     # Split training/test data
