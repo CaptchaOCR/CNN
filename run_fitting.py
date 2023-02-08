@@ -37,9 +37,11 @@ logging.warning(f'CUDA available: {torch.cuda.is_available()}')
 
 def run():
     # Locate files
-    path_iter = Path(DATA_DIR).glob('*')
-    file_locations = [str(path) for path in path_iter]
-    captcha_names = [file.stem for file in path_iter]
+    file_locations = []
+    captcha_names = []
+    for file in Path(DATA_DIR).glob('*'):
+        file_locations.append(str(file))
+        captcha_names.append(file.stem)
     logging.info( f'Identified {len(file_locations)} images.' )
 
     # Split training/test data
