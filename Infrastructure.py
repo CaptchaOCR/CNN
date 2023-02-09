@@ -46,17 +46,17 @@ class CaptchaDataset(Dataset):
         Parameters: file_locations (List[str]) List of image locations
         Returns: (np.ndarray) len(file_locations) x image dimensions
         """
-        return np.array([cls.import_image(location) for location in file_locations ])
+        return np.array([ cls.import_image(location) for location in file_locations ])
     
     @classmethod
-    def read_label_names(cls, file_locations:List[str]) -> List[str]:
+    def read_label_names(cls, file_locations:List) -> List[str]:
         """
         Simply extracts labels from filenames.
 
-        Parameters: file_locations (List[str]) List of image locations
+        Parameters: file_locations (List) List of image locations, Posix
         Returns: (List[str]) List of label names
         """
-        labels = [file.split('/')[-1].split('.')[0] for file in file_locations]
+        labels = [file.item for file in file_locations]
         
         return labels
 
