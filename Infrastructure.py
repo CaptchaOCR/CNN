@@ -6,7 +6,7 @@ import logging
 import torch
 
 import torchvision.transforms as T
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -124,11 +124,13 @@ class nnModuleWrapper(nn.Module):
         self.network = None
         self.CUDA = torch.cuda.is_available()
 
-    def fit(self, trainloader:torch.utils.data.dataloader.DataLoader,
+    def fit(self, trainloader:DataLoader,
             criterion = nn.MultiLabelSoftMarginLoss(),
-            optimizer = torch.optim.Adam,
+            optimizer = torch.optim.Adam, 
             learning_rate:float = 1e-3,
-            epochs:int = 20
+            epochs:int = 20,
+            testloader:DataLoader = None,
+            n_test_batches_per_epoch:int = 20
             ) -> None:
         """
         Run fitting process on our from a set of training images.
@@ -139,6 +141,7 @@ class nnModuleWrapper(nn.Module):
         optimizer (Optimizer function) Optimizer function
         learning_rate (float) 
         epochs (int)
+        testloader (DataLoader) optional, if you want to run val between epochs
         """
 
         # Check that we wrapped correctly
@@ -185,11 +188,15 @@ class nnModuleWrapper(nn.Module):
                 logging.info(f'[{epoch + 1}, {i + 1}] loss: {loss:.3e}')
                 
             logging.info(f'Finished epoch {epoch + 1}/{epochs} with total loss {running_loss}')
+            
+            if testloader is not None:
+                self.validate(testloader)
+
         logging.info('Finished fitting.')
         return
 
 
-    def validate(self, testloader:torch.utils.data.dataloader.DataLoader) -> Tuple[float]:
+    def validate(self, testloader:DataLoader) -> Tuple[float]:
         """
         Validate the accuracy of our model from a set of validation images.
 
@@ -214,7 +221,7 @@ class nnModuleWrapper(nn.Module):
             for (images, label_array, labels) in testloader:
 
                 # Predict label
-                if self.CUDA: images = Variable(images).cuda()
+                #if self.CUDA: images = Variable(images).cuda()
                 prediction = model(images)
 
                 # For each label in batch
@@ -238,25 +245,33 @@ class nnModuleWrapper(nn.Module):
                             c_correct += 1
                         c_total += 1
                     
-                    logging.debug('Predicted: %s Ground Truth: %s'%(predicted_label, correct_label))
-        
+                    logging.debug(f'Predicted: {predicted_label} -- Ground Truth: {correct_label}')
+
+                logging.debug(f'Running Label Accuracy: {100 * s_correct/s_total:.1f} -- Running Char Accuracy: {100 * c_correct/c_total:.1f}')
+
         # Calculate results
         label_accuracy = s_correct / s_total
         char_accuracy = c_correct / c_total
-        logging.info(f'Label-level accuracy (whole captcha) : {(100 * label_accuracy):.3f}%')
-        logging.info(f'Char-level accuracy (indiv. chars)   : {(100 * char_accuracy):.3f}%')
+        logging.info(f'{len(testloader.dataset) * prediction.shape[0]} labels scanned')
+        logging.info(f'Label accuracy (whole captcha) : {(100 * label_accuracy):.1f}%')
+        logging.info(f'Char accuracy (indiv. chars    : {(100 * char_accuracy):.1f}%')
         return label_accuracy, char_accuracy
 
 class ResNetWrapper(nnModuleWrapper):
     # https://arxiv.org/pdf/1512.03385v1.pdf
-    def __init__(self):
+    def __init__(self, model = None):
         super().__init__()
 
-        model = resnet18(weights=None)
+        if model is None: model = resnet18(pretrained = False)
         model.conv1 = nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
         model.fc = nn.Linear(512, len(unique_characters) * captcha_length, bias=True)
 
         self.network = model
+
+    @classmethod
+    def instantiate_with_no_weights(cls):
+        return cls( model = resnet18() )
+
 
 class BasicCNN(nnModuleWrapper):
     def __init__(self):
