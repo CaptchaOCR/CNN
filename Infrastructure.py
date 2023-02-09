@@ -56,7 +56,7 @@ class CaptchaDataset(Dataset):
         Parameters: file_locations (List) List of image locations, Posix
         Returns: (List[str]) List of label names
         """
-        labels = [file.item for file in file_locations]
+        labels = [file.stem for file in file_locations]
         
         return labels
 
