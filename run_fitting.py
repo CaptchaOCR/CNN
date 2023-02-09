@@ -15,7 +15,8 @@ SAVE_PATH = "./ResNetWrapper_weights.pth"
 ###
 from pathlib import Path
 import logging
-logging.basicConfig(level=logging.DEBUG, filename="run_fitting.log")
+logging.basicConfig(level=logging.INFO, filename="./logs/run_fitting.log")
+, filename="./logs/run_fitting.log")
 from sys import getsizeof
 
 import torch

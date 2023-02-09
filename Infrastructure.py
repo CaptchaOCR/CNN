@@ -130,7 +130,6 @@ class nnModuleWrapper(nn.Module):
             learning_rate:float = 1e-3,
             epochs:int = 20,
             testloader:DataLoader = None,
-            n_test_batches_per_epoch:int = 20
             ) -> None:
         """
         Run fitting process on our from a set of training images.
@@ -152,7 +151,7 @@ class nnModuleWrapper(nn.Module):
         # Instantiate optimizer
         optimizer = optimizer(model.parameters(), lr=learning_rate)
 
-        logging.debug(f'{len(trainloader)} batches per epoch.')
+        logging.info(f'{len(trainloader)} batches per epoch.')
 
         for epoch in range(epochs):
             
@@ -184,24 +183,28 @@ class nnModuleWrapper(nn.Module):
                 optimizer.step()
 
                 # Log stats
-                running_loss += loss.item()
+                running_loss += loss.item() * images.size(0)
                 logging.info(f'[{epoch + 1}, {i + 1}] loss: {loss:.3e}')
                 
             logging.info(f'Finished epoch {epoch + 1}/{epochs} with total loss {running_loss}')
             
             if testloader is not None:
-                self.validate(testloader)
+                self.validate(testloader, criterion=criterion)
 
         logging.info('Finished fitting.')
         return
 
 
-    def validate(self, testloader:DataLoader) -> Tuple[float]:
+    def validate(self, 
+                 testloader:DataLoader,
+                 criterion = None
+                 ) -> Tuple[float]:
         """
         Validate the accuracy of our model from a set of validation images.
 
         Parameters: model
         testloader (DataLoader object)
+        criterion -> if passed, will calculate loss
         """
 
         # Check that we wrapped correctly
@@ -214,6 +217,9 @@ class nnModuleWrapper(nn.Module):
 
         # Characters counter
         c_total = c_correct = 0
+
+        # If we keep track of loss
+        if criterion is not None: running_loss = 0.
 
         # Not training -- don't need to calc. gradients
         with torch.no_grad():
@@ -244,9 +250,19 @@ class nnModuleWrapper(nn.Module):
                         if x == y:
                             c_correct += 1
                         c_total += 1
-                    
-                    logging.debug(f'Predicted: {predicted_label} -- Ground Truth: {correct_label}')
+                
+                # Log label comparison
+                logging.debug(f'Predicted: {predicted_label} -- Ground Truth: {correct_label}')
 
+                # Increment loss
+                if criterion is not None:
+                    loss = criterion(
+                            prediction.reshape( prediction.shape[0], captcha_length, len(unique_characters) ),
+                            label_array
+                            )
+                    running_loss += loss.item() * images.size(0)
+                    
+                # Log Accuracy
                 logging.debug(f'Running Label Accuracy: {100 * s_correct/s_total:.1f} -- Running Char Accuracy: {100 * c_correct/c_total:.1f}')
 
         # Calculate results
@@ -255,6 +271,10 @@ class nnModuleWrapper(nn.Module):
         logging.info(f'{len(testloader.dataset) * prediction.shape[0]} labels scanned')
         logging.info(f'Label accuracy (whole captcha) : {(100 * label_accuracy):.1f}%')
         logging.info(f'Char accuracy (indiv. chars    : {(100 * char_accuracy):.1f}%')
+        
+        # Log loss
+        if criterion is not None: logging.info(f'Epoch total validation loss {running_loss}')
+
         return label_accuracy, char_accuracy
 
 class ResNetWrapper(nnModuleWrapper):
