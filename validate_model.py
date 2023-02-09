@@ -2,6 +2,8 @@
 
 DATA_DIR = "./Captchas"
 
+TRAINED_NN_PATH = './trained_ResNetWrapper_weights.pth'
+
 BATCH_SIZE = 64
 NUM_WORKERS = 4
 
@@ -21,7 +23,7 @@ def run():
 
     # Load in NN from weights
     net = ResNetWrapper.instantiate_with_no_weights()
-    net.load_state_dict(torch.load('./trained_ResNetWrapper_weights.pth', 
+    net.load_state_dict(torch.load(TRAINED_NN_PATH, 
                                    map_location=torch.device('cpu')))
 
 
@@ -31,12 +33,12 @@ def run():
 
 
     logging.debug('Loading images.')
-    # Doesn't matter which ones we use
-    test_files = file_locations[0:2_000]
-
     # Instantiate testloader
+    test_files = file_locations
     testloader = DataLoader(CaptchaDataset.from_dir(test_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
+    # Run validation
+    logging.debug('Starting validation.')
     label_accuracy, char_accuracy = net.validate(testloader)
 
 
