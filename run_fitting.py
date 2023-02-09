@@ -1,4 +1,3 @@
-
 ### Fit params
 
 DATA_DIR = "./Captchas"
@@ -13,9 +12,11 @@ LEARNING_RATE = 1e-3
 SAVE_PATH = "./ResNetWrapper_weights.pth"
 
 
+###
 from pathlib import Path
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO, filename="./logs/run_fitting.log")
+
 from sys import getsizeof
 
 import torch
@@ -33,7 +34,7 @@ from Infrastructure import CaptchaDataset, unique_characters, captcha_length, Re
 CUDA = False
 if torch.cuda.is_available():
     CUDA = True
-logging.warning(f'CUDA available: {torch.cuda.is_available()}')
+logging.warning(f'CUDA available: {CUDA}')
 
 def run():
     # Locate files
@@ -42,14 +43,13 @@ def run():
 
     # Split training/test data
     train_files, test_files = train_test_split(file_locations, test_size = TEST_SIZE)
-    print(f'Split dataset into 80:20 train/test of sizes {len(train_files)},{len(test_files)}.')
-
-    # Instantiate dataset
-    trainset = CaptchaDataset.from_dir(train_files)
-    logging.info(f'Loaded imageset into memory: {getsizeof(trainset)}')
+    logging.info(f'Split dataset into 80:20 train/test of sizes {len(train_files)},{len(test_files)}.')
 
     # Instantiate loader
-    trainloader = DataLoader(trainset, BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    trainloader = DataLoader(CaptchaDataset.from_dir(train_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    testloader = DataLoader(CaptchaDataset.from_dir(test_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+    logging.info(f'Loaded imagesets into memory.')
 
     net = ResNetWrapper()#CNN()
 
@@ -57,7 +57,8 @@ def run():
             criterion = nn.MultiLabelSoftMarginLoss(),
             optimizer = torch.optim.Adam,
             learning_rate = LEARNING_RATE,
-            epochs = EPOCHS)
+            epochs = EPOCHS,
+            testloader = testloader)
 
     if SAVE_PATH is not None: torch.save(net.state_dict(), SAVE_PATH)
 
@@ -66,12 +67,10 @@ def run():
 
     # Validating accuracy of model
     logging.info(f'Verifying accuracy')
-
-    testloader = DataLoader(CaptchaDataset.from_dir(test_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-
+    
     label_accuracy, char_accuracy = net.validate(testloader)
 
-    logging.info('Run_fit.py complete.')
+    logging.info('run_fitting.py complete.')
     return
 
 if __name__ == "__main__":
