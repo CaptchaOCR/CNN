@@ -16,7 +16,7 @@ SAVE_PATH = "./ResNetWrapper_weights.pth"
 from pathlib import Path
 import logging
 logging.basicConfig(level=logging.INFO, filename="./logs/run_fitting.log")
-, filename="./logs/run_fitting.log")
+
 from sys import getsizeof
 
 import torch
@@ -38,7 +38,7 @@ logging.warning(f'CUDA available: {CUDA}')
 
 def run():
     # Locate files
-    file_locations = [file for file in Path(DATA_DIR).glob('*')][0:2_000]
+    file_locations = [file for file in Path(DATA_DIR).glob('*')]
     logging.info( f'Identified {len(file_locations)} images.' )
 
     # Split training/test data
