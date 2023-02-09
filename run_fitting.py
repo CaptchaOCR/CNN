@@ -42,7 +42,7 @@ def run():
 
     # Split training/test data
     train_files, test_files = train_test_split(file_locations, test_size = TEST_SIZE)
-    print(f'Split dataset into 80:20 train/test of sizes {len(train_files)},{len(test_files)}.')
+    logging.info(f'Split dataset into 80:20 train/test of sizes {len(train_files)},{len(test_files)}.')
 
     # Instantiate loader
     trainloader = DataLoader(CaptchaDataset.from_dir(train_files), BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
